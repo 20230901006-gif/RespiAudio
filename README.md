@@ -664,7 +664,79 @@ def create_respiratory_pipeline():
     return preprocessing_pipeline
     class AudioLoader(BaseEstimator, TransformerMixin):
     ...
+import os
+import glob
+import librosa
+import librosa.feature as feature
+import numpy as np
+import pandas as pd
 
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
+
+# AUDIO FOLDER
+audio_folder = r"C:\Users\hp\Downloads\archive (2)\Respiratory_Sound_Database\Respiratory_Sound_Database\audio_and_txt_files"
+
+# GET ALL WAV FILES
+file_paths = glob.glob(os.path.join(audio_folder, "*.wav"))
+
+print("Total audio files:", len(file_paths))
+
+# STORE FEATURES
+X_features = []
+
+# EXTRACT FEATURES
+for file in file_paths:
+
+    try:
+        y, sr = librosa.load(file, sr=None)
+
+        # trim silence
+        y, _ = librosa.effects.trim(y)
+
+        # feature extraction
+        features = [
+
+            np.mean(feature.chroma_stft(y=y, sr=sr)),
+            np.mean(feature.mfcc(y=y, sr=sr)),
+            np.mean(feature.melspectrogram(y=y, sr=sr)),
+
+            np.mean(
+                feature.spectral_contrast(
+                    y=y,
+                    sr=sr,
+                    fmin=50,
+                    n_bands=3
+                )
+            ),
+
+            np.mean(feature.rms(y=y)),
+            np.mean(feature.zero_crossing_rate(y)),
+            np.mean(feature.spectral_bandwidth(y=y, sr=sr)),
+            np.mean(feature.spectral_centroid(y=y, sr=sr)),
+            np.mean(feature.spectral_flatness(y=y)),
+            np.mean(feature.spectral_rolloff(y=y, sr=sr))
+        ]
+
+        X_features.append(features)
+
+    except Exception as e:
+        print(f"Error in {file}: {e}")
+
+# CONVERT TO NUMPY ARRAY
+X = np.array(X_features)
+
+print("Feature shape:", X.shape)
+
+# SCALE FEATURES
+pipeline = Pipeline([
+    ('scaler', StandardScaler())
+])
+
+X_scaled = pipeline.fit_transform(X)
+
+print("Scaling completed!")
+print(X_scaled[:5])
     import numpy as np
 import matplotlib.pyplot as plt
 from scipy import signal

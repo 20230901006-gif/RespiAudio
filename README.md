@@ -987,6 +987,545 @@ print("Laplace:", acc_lap)
 print("Fourier:", acc_fourier)
 print("Combined:", acc_combined)
 
+from xgboost import XGBClassifier
+from sklearn.model_selection import cross_val_score
+from sklearn.preprocessing import LabelEncoder, StandardScaler
+import numpy as np
+
+# Features
+X = np.asarray(X_base_z)
+
+# Labels
+y_encoded = LabelEncoder().fit_transform(df['diagnosis'])
+
+# Scale
+X = StandardScaler().fit_transform(X)
+
+# Model
+model = XGBClassifier(
+    n_estimators=300,
+    max_depth=6,
+    learning_rate=0.05,
+    subsample=0.8,
+    colsample_bytree=0.8,
+    random_state=42,
+    eval_metric='mlogloss'
+)
+
+# Accuracy
+acc = cross_val_score(
+    model,
+    X,
+    y_encoded,
+    cv=5,
+    scoring='accuracy'
+).mean()
+
+# F1
+f1 = cross_val_score(
+    model,
+    X,
+    y_encoded,
+    cv=5,
+    scoring='f1_weighted'
+).mean()
+
+print("Accuracy:", acc)
+print("F1:", f1)
+
+from sklearn.ensemble import ExtraTreesClassifier
+from sklearn.model_selection import cross_val_score
+from sklearn.preprocessing import StandardScaler
+
+X = StandardScaler().fit_transform(X_base_filtered)
+
+model = ExtraTreesClassifier(
+    n_estimators=300,
+    max_depth=20,
+    class_weight='balanced',
+    random_state=42,
+    n_jobs=-1
+)
+
+acc = cross_val_score(
+    model,
+    X,
+    y_filtered,
+    cv=5,
+    scoring='accuracy'
+).mean()
+
+print("Filtered Accuracy:", acc)
+
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder, StandardScaler
+from sklearn.metrics import accuracy_score, f1_score
+
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import LSTM, Dense, Dropout
+from tensorflow.keras.utils import to_categorical
+from tensorflow.keras.callbacks import EarlyStopping
+
+# Features
+X = np.asarray(X_base_z)
+
+# Labels
+y = LabelEncoder().fit_transform(df['diagnosis'])
+y_cat = to_categorical(y)
+
+# Scale
+X = StandardScaler().fit_transform(X)
+
+# Reshape for LSTM
+X = X.reshape(X.shape[0], X.shape[1], 1)
+
+# NO STRATIFY
+X_train, X_test, y_train, y_test = train_test_split(
+    X,
+    y_cat,
+    test_size=0.2,
+    random_state=42
+)
+
+# Model
+model = Sequential([
+    LSTM(128, return_sequences=True, input_shape=(X.shape[1], 1)),
+    Dropout(0.3),
+
+    LSTM(64),
+    Dropout(0.3),
+
+    Dense(64, activation='relu'),
+    Dense(y_cat.shape[1], activation='softmax')
+])
+
+model.compile(
+    optimizer='adam',
+    loss='categorical_crossentropy',
+    metrics=['accuracy']
+)
+
+early_stop = EarlyStopping(
+    monitor='val_loss',
+    patience=5,
+    restore_best_weights=True
+)
+
+history = model.fit(
+    X_train,
+    y_train,
+    validation_split=0.2,
+    epochs=50,
+    batch_size=16,
+    callbacks=[early_stop],
+    verbose=1
+)
+
+# Evaluation
+y_pred = model.predict(X_test)
+
+y_pred = np.argmax(y_pred, axis=1)
+y_true = np.argmax(y_test, axis=1)
+
+acc = accuracy_score(y_true, y_pred)
+f1 = f1_score(y_true, y_pred, average='weighted')
+
+print("Accuracy:", acc)
+print("F1 Score:", f1)
+
+from sklearn.ensemble import ExtraTreesClassifier
+from sklearn.model_selection import cross_val_score
+from sklearn.preprocessing import StandardScaler
+import numpy as np
+
+X = np.asarray(X_base_z)
+X = StandardScaler().fit_transform(X)
+
+model = ExtraTreesClassifier(
+    n_estimators=500,
+    max_depth=None,
+    min_samples_split=2,
+    min_samples_leaf=1,
+    random_state=42,
+    n_jobs=-1
+)
+
+acc = cross_val_score(
+    model,
+    X,
+    df['diagnosis'],
+    cv=5,
+    scoring='accuracy'
+).mean()
+
+print("Accuracy:", acc)
+
+import numpy as np
+import librosa
+from scipy.stats import skew, kurtosis
+
+def extract_features(file_path):
+
+    signal, sr = librosa.load(file_path, sr=22050)
+
+    features = []
+
+    # =========================
+    # TIME DOMAIN FEATURES
+    # =========================
+
+    # Zero Crossing Rate
+    zcr = np.mean(librosa.feature.zero_crossing_rate(signal))
+    features.append(zcr)
+
+    # RMS Energy
+    rms = np.mean(librosa.feature.rms(y=signal))
+    features.append(rms)
+
+    # Statistical Features
+    features.append(np.mean(signal))
+    features.append(np.std(signal))
+    features.append(np.max(signal))
+    features.append(np.min(signal))
+    features.append(skew(signal))
+    features.append(kurtosis(signal))
+
+    # =========================
+    # FREQUENCY DOMAIN FEATURES
+    # =========================
+
+    # MFCC Features
+    mfccs = librosa.feature.mfcc(
+        y=signal,
+        sr=sr,
+        n_mfcc=40
+    )
+
+    features.extend(np.mean(mfccs, axis=1))
+    features.extend(np.std(mfccs, axis=1))
+
+    # Chroma Features
+    chroma = librosa.feature.chroma_stft(
+        y=signal,
+        sr=sr
+    )
+
+    features.extend(np.mean(chroma, axis=1))
+
+    # Mel Spectrogram
+    mel = librosa.feature.melspectrogram(
+        y=signal,
+        sr=sr
+    )
+
+    features.extend(np.mean(mel, axis=1))
+
+    # Spectral Contrast
+    contrast = librosa.feature.spectral_contrast(
+        y=signal,
+        sr=sr
+    )
+
+    features.extend(np.mean(contrast, axis=1))
+
+    # Tonnetz
+    tonnetz = librosa.feature.tonnetz(
+        y=librosa.effects.harmonic(signal),
+        sr=sr
+    )
+
+    features.extend(np.mean(tonnetz, axis=1))
+
+    # Spectral Centroid
+    centroid = librosa.feature.spectral_centroid(
+        y=signal,
+        sr=sr
+    )
+
+    features.append(np.mean(centroid))
+
+    # Spectral Bandwidth
+    bandwidth = librosa.feature.spectral_bandwidth(
+        y=signal,
+        sr=sr
+    )
+
+    features.append(np.mean(bandwidth))
+
+    # Spectral RollOff
+    rolloff = librosa.feature.spectral_rolloff(
+        y=signal,
+        sr=sr
+    )
+
+    features.append(np.mean(rolloff))
+
+    return np.array(features)
+
+	import librosa
+import numpy as np
+
+# =========================
+# ADVANCED FEATURE EXTRACTION
+# =========================
+
+def advanced_features(file_path):
+
+    y, sr = librosa.load(file_path, sr=22050)
+
+    features = []
+
+    # ==================================
+    # FOURIER / Z FEATURES
+    # ==================================
+
+    fft_vals = np.abs(np.fft.fft(y))
+
+    z_feat = fft_vals[:50]
+    features.extend(z_feat)
+
+    # ==================================
+    # LAPLACE FEATURES
+    # ==================================
+
+    t = np.linspace(0, 1, len(y))
+
+    laplace_feat = np.abs(
+        np.fft.fft(y * np.exp(-1.2 * t))
+    )[:50]
+
+    features.extend(laplace_feat)
+
+    # ==================================
+    # MFCC FEATURES
+    # ==================================
+
+    mfcc = librosa.feature.mfcc(
+        y=y,
+        sr=sr,
+        n_mfcc=40
+    )
+
+    features.extend(np.mean(mfcc, axis=1))
+    features.extend(np.std(mfcc, axis=1))
+
+    # ==================================
+    # DELTA MFCC
+    # ==================================
+
+    delta_mfcc = librosa.feature.delta(mfcc)
+
+    features.extend(np.mean(delta_mfcc, axis=1))
+    features.extend(np.std(delta_mfcc, axis=1))
+
+    # ==================================
+    # DELTA-DELTA MFCC
+    # ==================================
+
+    delta2_mfcc = librosa.feature.delta(
+        mfcc,
+        order=2
+    )
+
+    features.extend(np.mean(delta2_mfcc, axis=1))
+    features.extend(np.std(delta2_mfcc, axis=1))
+
+    # ==================================
+    # RMS ENERGY
+    # ==================================
+
+    rms = librosa.feature.rms(y=y)
+
+    features.append(np.mean(rms))
+    features.append(np.std(rms))
+
+    # ==================================
+    # SPECTRAL FLATNESS
+    # ==================================
+
+    flatness = librosa.feature.spectral_flatness(y=y)
+
+    features.append(np.mean(flatness))
+    features.append(np.std(flatness))
+
+    # ==================================
+    # SPECTRAL CENTROID
+    # ==================================
+
+    centroid = librosa.feature.spectral_centroid(
+        y=y,
+        sr=sr
+    )
+
+    features.append(np.mean(centroid))
+    features.append(np.std(centroid))
+
+    # ==================================
+    # SPECTRAL BANDWIDTH
+    # ==================================
+
+    bandwidth = librosa.feature.spectral_bandwidth(
+        y=y,
+        sr=sr
+    )
+
+    features.append(np.mean(bandwidth))
+    features.append(np.std(bandwidth))
+
+    # ==================================
+    # ZERO CROSSING RATE
+    # ==================================
+
+    zcr = librosa.feature.zero_crossing_rate(y)
+
+    features.append(np.mean(zcr))
+    features.append(np.std(zcr))
+
+    # ==================================
+    # SPECTRAL ENTROPY
+    # ==================================
+
+    S = np.abs(librosa.stft(y))
+
+    S_norm = S / (
+        np.sum(S, axis=0, keepdims=True) + 1e-10
+    )
+
+    entropy = -np.sum(
+        S_norm * np.log2(S_norm + 1e-10),
+        axis=0
+    )
+
+    features.append(np.mean(entropy))
+    features.append(np.std(entropy))
+
+    return np.array(features)
+	X = []
+
+for i, file in enumerate(file_paths):
+
+    if i % 50 == 0:
+        print(f"Processing {i}/{len(file_paths)}")
+
+    try:
+        feat = advanced_features(file)
+        X.append(feat)
+
+    except Exception as e:
+        print("Error:", file)
+        print(e)
+
+X = np.array(X)
+
+print("Final Shape:", X.shape)
+
+from sklearn.ensemble import ExtraTreesClassifier
+
+model = ExtraTreesClassifier(
+    n_estimators=1000,
+    random_state=42,
+    n_jobs=-1
+)
+X_train_flat = X_train.reshape(X_train.shape[0], -1)
+
+X_test_flat = X_test.reshape(X_test.shape[0], -1)
+
+from sklearn.ensemble import ExtraTreesClassifier
+
+model = ExtraTreesClassifier(
+    n_estimators=1000,
+    random_state=42,
+    n_jobs=-1
+)
+
+model.fit(X_train_flat, y_train)
+
+feature_names = [
+    f"MFCC_{i}" for i in range(X_train_flat.shape[1])
+]
+import shap
+
+# Feature names
+feature_names = [
+    f"MFCC_{i}" for i in range(X_train_flat.shape[1])
+]
+
+# Sample
+X_sample = X_test_flat[:50]
+
+# SHAP explainer
+explainer = shap.TreeExplainer(model)
+
+# SHAP values
+shap_values = explainer(X_sample)
+
+# Add names directly into SHAP object
+shap_values.feature_names = feature_names
+
+# Plot
+shap.plots.beeswarm(shap_values[:, :, 0])
+
+import numpy as np
+from xgboost import XGBClassifier
+from sklearn.metrics import accuracy_score, classification_report
+
+# Convert one-hot labels to single labels
+y_train_single = np.argmax(y_train, axis=1)
+y_test_single = np.argmax(y_test, axis=1)
+
+# XGBoost model
+model = XGBClassifier(
+    n_estimators=1000,
+    learning_rate=0.01,
+    max_depth=8,
+    subsample=0.8,
+    colsample_bytree=0.8,
+    eval_metric='mlogloss',
+    random_state=42
+)
+
+# Train
+model.fit(X_train_flat, y_train_single)
+
+# Predict
+y_pred = model.predict(X_test_flat)
+
+# Results
+print("Accuracy:", accuracy_score(y_test_single, y_pred))
+
+print(classification_report(y_test_single, y_pred))
+
+import numpy as np
+from xgboost import XGBClassifier
+from sklearn.metrics import accuracy_score, classification_report
+
+# Convert one-hot labels to single labels
+y_train_single = np.argmax(y_train, axis=1)
+y_test_single = np.argmax(y_test, axis=1)
+
+# XGBoost model
+model = XGBClassifier(
+    n_estimators=1000,
+    learning_rate=0.01,
+    max_depth=8,
+    subsample=0.8,
+    colsample_bytree=0.8,
+    eval_metric='mlogloss',
+    random_state=42
+)
+
+# Train
+model.fit(X_train_flat, y_train_single)
+
+# Predict
+y_pred = model.predict(X_test_flat)
+
+# Results
+print("Accuracy:", accuracy_score(y_test_single, y_pred))
+
+print(classification_report(y_test_single, y_pred))
+
 
 
 

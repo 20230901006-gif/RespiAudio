@@ -28,7 +28,6 @@ The dataset includes recordings from multiple respiratory disease categories, in
 Due to licensing restrictions, the dataset is not included in this repository. Please obtain the dataset from the original source before running the notebooks.
 
 ## Methodology
-## Methodology
 
 The Smart Auscultation pipeline follows a systematic workflow for respiratory disease classification using respiratory sound recordings and machine learning.
 

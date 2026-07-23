@@ -2,12 +2,15 @@
 
 ## Overview
 
-Smart Auscultation is an AI-powered respiratory disease diagnosis system that analyzes lung sound recordings to assist in the detection of respiratory disorders. The project combines digital signal processing, machine learning, and explainable artificial intelligence (XAI) to provide accurate and interpretable predictions.
+Respiratory diseases, including Chronic Obstructive Pulmonary Disease (COPD), asthma, pneumonia, bronchitis, and bronchiolitis, remain among the leading causes of morbidity and mortality worldwide. Early diagnosis is essential for effective treatment; however, conventional auscultation is often subjective, dependent on clinical expertise, and difficult to implement consistently in resource-limited healthcare settings.
 
-Respiratory audio recordings are preprocessed, relevant acoustic features are extracted, and machine learning models are trained to classify respiratory conditions. To improve transparency and trust in AI-assisted diagnosis, SHAP (SHapley Additive exPlanations) is used to explain model predictions.
+This repository presents Smart Auscultation, an AI-powered respiratory disease diagnosis framework that analyzes cough, breathing, and voice recordings for automated disease classification. The system combines robust audio preprocessing, multi-domain feature extraction, and machine learning to identify respiratory conditions from acoustic biomarkers.
 
-This project demonstrates how artificial intelligence can support healthcare professionals by enabling efficient, non-invasive, and accessible respiratory disease screening.
+The proposed pipeline employs noise reduction techniques, multisource audio fusion, and feature engineering using Mel-Frequency Cepstral Coefficients (MFCC), Fast Fourier Transform (FFT), and spectrogram-based representations. Multiple machine learning algorithms—including Random Forest, Extra Trees, Support Vector Machine (SVM), and XGBoost—were evaluated to determine the most effective classification model.
 
+Experimental evaluation demonstrated that XGBoost achieved the highest classification accuracy of 92.93%, with balanced precision, recall, and F1-score values of approximately 93%. The framework also maintains low computational complexity and an average inference latency of 23 ms, making it suitable for deployment on mobile devices, edge computing platforms, and AI-enabled smart stethoscopes.
+
+This repository contains the implementation, notebooks, and supporting resources for reproducing the Smart Auscultation pipeline and demonstrates how artificial intelligence can improve accessible, efficient, and scalable respiratory disease diagnosis.
 ## Features
 
 - Respiratory audio preprocessing
